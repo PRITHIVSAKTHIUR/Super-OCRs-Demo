@@ -37,17 +37,16 @@
 
    **requirements.txt content:**
    ```
-   flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.3/flash_attn-2.7.3+cu12torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+   flash-attn @ https://huggingface.co/strangertoolshf/flash_attention_2_wheelhouse/resolve/main/wheelhouse-flash_attn-2.8.3/linux_x86_64/torch2.8/cu12/abiFALSE/cp310/flash_attn-2.8.3+cu12torch2.8cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
    git+https://github.com/huggingface/transformers@82a06db03535c49aa987719ed0746a76093b1ec4
    git+https://github.com/huggingface/accelerate.git
    git+https://github.com/huggingface/diffusers.git
    git+https://github.com/huggingface/peft.git
    huggingface_hub
-   gradio==5.49.1
    qwen-vl-utils
    sentencepiece
    opencv-python
-   torch==2.6.0
+   torch==2.8.0
    torchvision
    supervision
    matplotlib
