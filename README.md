@@ -2,6 +2,9 @@
 
 > A Gradio-based demo application for comparing state-of-the-art OCR models: DeepSeek-OCR, Dots.OCR, HunyuanOCR, and Nanonets-OCR2-3B. Users can upload images, select models, apply custom prompts, and generate recognized text or visual grounding results. Supports tasks like free OCR, markdown conversion, figure parsing, and object location.
 
+<img width="1775" height="1863" alt="screencapture-huggingface-co-spaces-prithivMLmods-Super-OCRs-Demo-2026-05-13-10_40_47" src="https://github.com/user-attachments/assets/f90f41ee-c558-4887-bfc7-cd04e5f6b71c" />
+
+
 ## Features
 
 - **Multi-Model Comparison**: Switch between DeepSeek-OCR (with resolution and task options), Dots.OCR, HunyuanOCR, and Nanonets-OCR2-3B for flexible OCR workflows.
