@@ -43,6 +43,15 @@ from gradio.themes.utils import colors, fonts, sizes
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"✅ Using device: {device}")
 
+print("CUDA_VISIBLE_DEVICES=", os.environ.get("CUDA_VISIBLE_DEVICES"))
+print("torch.__version__ =", torch.__version__)
+print("torch.version.cuda =", torch.version.cuda)
+print("cuda available:", torch.cuda.is_available())
+print("cuda device count:", torch.cuda.device_count())
+if torch.cuda.is_available():
+    print("current device:", torch.cuda.current_device())
+    print("device name:", torch.cuda.get_device_name(torch.cuda.current_device()))
+    
 # --- Theme Definition ---
 colors.steel_blue = colors.Color(
     name="steel_blue",
@@ -379,22 +388,20 @@ def run_model(
             buffer += new_text.replace("<|im_end|>", "")
             yield buffer, None
 
-# --- Gradio UI ---
-
 image_examples = [
     ["examples/1.jpg"],
     ["examples/2.jpg"],
     ["examples/3.jpg"],
 ]
 
-with gr.Blocks(css=css, theme=steel_blue_theme) as demo:
+with gr.Blocks() as demo:
     gr.Markdown("# **Super-OCRs-Demo**", elem_id="main-title")
     gr.Markdown("Compare DeepSeek-OCR, Dots.OCR, HunyuanOCR, and Nanonets-OCR2-3B in one space.")
     
     with gr.Row():
         with gr.Column(scale=1):
             # Global Inputs
-            model_choice = gr.Radio(
+            model_choice = gr.Dropdown(
                 choices=["HunyuanOCR", "DeepSeek-OCR-Latest-BF16.I64", "Dots.OCR-Latest-BF16", "Nanonets-OCR2-3B"],
                 label="Select Model",
                 value="DeepSeek-OCR-Latest-BF16.I64"
@@ -415,7 +422,7 @@ with gr.Blocks(css=css, theme=steel_blue_theme) as demo:
             
             # General Prompt (for Dots/Hunyuan/Nanonets)
             with gr.Group(visible=False) as prompt_group:
-                custom_prompt = gr.Textbox(label="Custom Query / Prompt", placeholder="Extract text...", lines=2)
+                custom_prompt = gr.Textbox(label="Custom Query / Prompt", placeholder="Extract text...", lines=2, value="Convert to Markdown precisely.")
 
             with gr.Accordion("Advanced Settings", open=False):
                 max_new_tokens = gr.Slider(minimum=128, maximum=8192, value=2048, step=128, label="Max New Tokens")
@@ -428,11 +435,9 @@ with gr.Blocks(css=css, theme=steel_blue_theme) as demo:
             gr.Examples(examples=image_examples, inputs=image_input)
 
         with gr.Column(scale=2):
-            output_text = gr.Textbox(label="Recognized Text / Markdown", lines=15, show_copy_button=True)
+            output_text = gr.Textbox(label="Recognized Text / Markdown", lines=15, interactive=True)
             output_image = gr.Image(label="Visual Grounding Result (DeepSeek Only)", type="pil")
 
-    # --- UI Event Logic ---
-    
     def update_visibility(model):
         is_ds = (model == "DeepSeek-OCR-Latest-BF16.I64")
         return gr.Group(visible=is_ds), gr.Group(visible=not is_ds)
@@ -453,4 +458,4 @@ with gr.Blocks(css=css, theme=steel_blue_theme) as demo:
     )
 
 if __name__ == "__main__":
-    demo.queue(max_size=30).launch(mcp_server=True, ssr_mode=False, show_error=True)
+    demo.queue(max_size=30).launch(css=css, theme=steel_blue_theme, mcp_server=True, ssr_mode=False, show_error=True)
