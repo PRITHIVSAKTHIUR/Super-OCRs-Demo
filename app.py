@@ -34,8 +34,7 @@ from transformers import (
     AutoTokenizer,
     AutoProcessor,
     TextIteratorStreamer,
-    HunYuanVLForConditionalGeneration,
-    Qwen2_5_VLForConditionalGeneration, 
+    Qwen2_5_VLForConditionalGeneration,
 )
 from gradio.themes import Soft
 from gradio.themes.utils import colors, fonts, sizes
@@ -142,18 +141,7 @@ model_dots = AutoModelForCausalLM.from_pretrained(
     device_map="auto"
 ).eval()
 
-# 3. HunyuanOCR
-MODEL_HUNYUAN = "tencent/HunyuanOCR"
-print(f"Loading {MODEL_HUNYUAN}...")
-processor_hy = AutoProcessor.from_pretrained(MODEL_HUNYUAN, use_fast=False)
-model_hy = HunYuanVLForConditionalGeneration.from_pretrained(
-    MODEL_HUNYUAN,
-    attn_implementation="eager", # Use eager to avoid SDPA issues if old torch
-    torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-    device_map="auto"
-).eval()
-
-# 4. Nanonets-OCR2-3B
+# 3. Nanonets-OCR2-3B
 MODEL_ID_X = "nanonets/Nanonets-OCR2-3B"
 print(f"Loading {MODEL_ID_X}...")
 processor_x = AutoProcessor.from_pretrained(MODEL_ID_X, trust_remote_code=True)
@@ -167,22 +155,6 @@ model_x = Qwen2_5_VLForConditionalGeneration.from_pretrained(
 print("✅ All models loaded successfully.")
 
 # --- Helper Functions ---
-
-def clean_repeated_substrings(text):
-    """Clean repeated substrings in text (for Hunyuan)"""
-    n = len(text)
-    if n < 8000:
-        return text
-    for length in range(2, n // 10 + 1):
-        candidate = text[-length:] 
-        count = 0
-        i = n - length
-        while i >= 0 and text[i:i + length] == candidate:
-            count += 1
-            i -= length
-        if count >= 10:
-            return text[:n - length * (count - 1)]  
-    return text
 
 def find_result_image(path):
     for filename in os.listdir(path):
@@ -311,41 +283,6 @@ def run_model(
             buffer += new_text.replace("<|im_end|>", "")
             yield buffer, None
 
-    # === HunyuanOCR Logic ===
-    elif model_choice == "HunyuanOCR":
-        query = custom_prompt if custom_prompt else "检测并识别图片中的文字，将文本坐标格式化输出。"
-        # Hunyuan template structure
-        messages = [
-            {"role": "system", "content": ""},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": image}, 
-                    {"type": "text", "text": query},
-                ],
-            }
-        ]
-        
-        # Note: Hunyuan processor expects specific handling
-        texts = [processor_hy.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)]
-        inputs = processor_hy(text=texts, images=image, padding=True, return_tensors="pt")
-        inputs = inputs.to(model_hy.device)
-        
-        # Generate (Not streaming for Hunyuan usually)
-        with torch.no_grad():
-            generated_ids = model_hy.generate(
-                **inputs, 
-                max_new_tokens=max_new_tokens, 
-                do_sample=False 
-            )
-            
-        input_len = inputs.input_ids.shape[1]
-        generated_ids_trimmed = generated_ids[:, input_len:]
-        output_text = processor_hy.batch_decode(generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
-        
-        final_text = clean_repeated_substrings(output_text)
-        yield final_text, None
-
     # === Nanonets-OCR2-3B Logic ===
     elif model_choice == "Nanonets-OCR2-3B":
         query = custom_prompt if custom_prompt else "Extract the text from this image."
@@ -396,13 +333,13 @@ image_examples = [
 
 with gr.Blocks() as demo:
     gr.Markdown("# **Super-OCRs-Demo**", elem_id="main-title")
-    gr.Markdown("Compare DeepSeek-OCR, Dots.OCR, HunyuanOCR, and Nanonets-OCR2-3B in one space.")
+    gr.Markdown("Compare DeepSeek-OCR, Dots.OCR, and Nanonets-OCR2-3B in one space.")
     
     with gr.Row():
         with gr.Column(scale=1):
             # Global Inputs
             model_choice = gr.Dropdown(
-                choices=["HunyuanOCR", "DeepSeek-OCR-Latest-BF16.I64", "Dots.OCR-Latest-BF16", "Nanonets-OCR2-3B"],
+                choices=["DeepSeek-OCR-Latest-BF16.I64", "Dots.OCR-Latest-BF16", "Nanonets-OCR2-3B"],
                 label="Select Model",
                 value="DeepSeek-OCR-Latest-BF16.I64"
             )
@@ -420,7 +357,7 @@ with gr.Blocks() as demo:
                 )
                 ds_ref_text = gr.Textbox(label="Reference Text (for 'Locate' task only)", placeholder="e.g., the title, red car...", visible=False)
             
-            # General Prompt (for Dots/Hunyuan/Nanonets)
+            # General Prompt (for Dots/Nanonets)
             with gr.Group(visible=False) as prompt_group:
                 custom_prompt = gr.Textbox(label="Custom Query / Prompt", placeholder="Extract text...", lines=2, value="Convert to Markdown precisely.")
 
